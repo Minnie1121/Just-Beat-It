@@ -1,4 +1,4 @@
-# Beat stores the time in a song when the user press a key
+# Beat stores timestamp when the user press a key
 # and how long it was held
 # maybe set a maximum length?
 

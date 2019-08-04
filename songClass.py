@@ -1,4 +1,4 @@
-# beats[]: a list of timestamps (int)
+# beats[]: a list of Beat (class)
 
 class Song(object):
 	def __init__(self, filePath, bestScore, bestCombo, beats=[]):
