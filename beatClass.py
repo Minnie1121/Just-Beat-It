@@ -6,3 +6,5 @@ class Beat(object):
 	def __init__(self, timestamp, length):
 		self.timestamp = timestamp
 		self.length = length
+
+	def onTimerFired(self, data)
