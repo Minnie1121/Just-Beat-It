@@ -1,16 +1,23 @@
 # Circles (superclass)
 
+import random
+
 class Circle(object):
-	def __init__(self, cx, cy, time, color="blue"):
-		self.cx = cx
-		self.cy = cy
-		self.r = 8
-		self.time = time
+	def __init__(self, time, color="blue"):
+		self.r = 20
+		self.time = time	# (start, end)
 		self.color = color
 
 	def draw(self, canvas, data):
-		self.cx = random.randint(self.r, data.width-self.r)
-		self.cy = random.randint(self.r, data.height-self.r)
-		canvas.create_oval(self.cx-self.r, self.cy-self.r,
-							self.cx+self.r, self.cy+self.r,
-							fill = self.color)
+		for row in range(5):
+			for col in range(5):
+				if data.grid[row][col] == False:
+					data.grid[row][col] = True
+					cx = 40 + col*data.cellW
+					cy = 60 + row*data.cellH
+					canvas.create_oval(cx-self.r, cy-self.r,
+									   cx+self.r, cy+self.r,
+									   fill = self.color)
+					break
+			if data.grid[row][col] == True: break
+
