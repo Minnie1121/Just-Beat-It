@@ -12,6 +12,7 @@ sys.path.append("../")
 from roundHalfUp import *
 from circleClass import *
 
+# standard for key hold: (keyrelease-keypress) > 1s
 
 ####################################
 # init
@@ -25,15 +26,21 @@ def init(data):
 	data.isPressed = False
 	data.songTimer = 0
 	data.startGame = False
-	data.timer = 0
 
 	data.rows = 5
 	data.cols = 5
+	# margin top = 60, bottom = 40
+	# margin left = right = 40
 	data.cellW = (data.width-80) / 5
 	data.cellH = (data.height-100) / 5
 	data.grid = [ [False] * 5 for row in range(5) ]
 
 	data.circles = []
+	data.lastBeat = None
+	data.timer = 0
+	data.levels = []	# how good the user clicks; tuple (level, circle)
+
+	data.score = 0
 
 
 ####################################
@@ -99,6 +106,7 @@ def selectSongRedrawAll(canvas, data):
                        text="Press 's' to select", font="Arial 20")
 
 
+
 ####################################
 # tapBeats mode
 ####################################
@@ -121,11 +129,10 @@ def tapBeatsKeyPressed(event, data):
 
 def tapBeatsKeyRelease(event, data):
 	if data.isPressed and mixer.music.get_busy():
-		now = time.time()
+		now = time.time()	# sec
 		timestamp = (data.press-data.songStart, now-data.songStart)
 		data.beats.append(timestamp)
-		print(timestamp)
-		data.circles.append(Circle(timestamp))
+		# print(timestamp)
 	data.isPressed = False
 
 def tapBeatsTimerFired(data):
@@ -139,9 +146,29 @@ def tapBeatsRedrawAll(canvas, data):
                        text="Press 'm' to start music\nPress 'space' to create your beats\nPress 's' to start the game", font="Arial 20")
 
 
+
 ####################################
 # playGame mode
 ####################################
+
+def almostEqual(x, y):
+	return 0 <= abs(x-y) <= 0.1		# 0.1 sec
+
+def clickLevel(clickTime, circle):
+	diff = clickTime - circle.timestamp[0]
+	length = circle.timestamp[1] - circle.timestamp[0]
+	if 0 <= diff <= 0.7:
+		data.score += 10
+		return "Perfect"
+	elif diff <= 1:
+		data.score += 5
+		return "Good"
+	elif diff <= max(length, 2):
+		data.score += 3
+		return "OK"
+	else:
+		return "Miss"
+
 
 def playGameMousePressed(event, data):
 	if not data.startGame:
@@ -150,6 +177,22 @@ def playGameMousePressed(event, data):
 			data.songTimer = time.time()	# sec; when the music (game) starts
 			mixer.music.load(fileName)
 			mixer.music.play()
+	else:		# game started
+		toRemove = []
+		for circle in data.circles:
+			if circle.clickedIn(event.x, event.y):
+				toRemove.append(circle)
+				clickTime = time.time() - data.songTimer
+				level = clickLevel(clickTime, circle)
+				data.levels.append((level, circle))
+		remaining = []
+		for circle in data.circles:
+			if circle not in toRemove:
+				remaining.append(circle)
+		data.circles = remaining
+
+
+
 
 def playGameKeyPressed(event, data):
 	pass
@@ -158,21 +201,50 @@ def playGameKeyRelease(event, data):
 	pass
 
 def playGameTimerFired(data):
-	pass
+	if data.startGame:
+		data.timer += 1
+		for circle in data.circles:
+			circle.timer += 1
+
+		for beat in data.beats:
+			if almostEqual(data.timer/10, beat[0]) and beat != data.lastBeat:
+				data.circles.append(Circle(beat, 0))
+				data.lastBeat = beat 	# avoid the extra timerFired calls
+				break
+
+		toRemove = []
+		for circle in data.circles:
+			length = circle.timestamp[1] - circle.timestamp[0]
+			if length < 1:	# key press, circle stays for 1 sec
+				if almostEqual(data.timer/10, circle.timestamp[0]+1.5):
+					toRemove.append(circle)
+			else:		# key hold, circle stays until key release or 2 sec
+				if almostEqual(data.timer/10, 
+							   circle.timestamp[0]+max(2, length)):
+					toRemove.append(circle)
+
+		remaining = []
+		for circle in data.circles:
+			if circle not in toRemove:
+				remaining.append(circle)
+		data.circles = remaining
+
 
 def playGameRedrawAll(canvas, data):
 	drawGrid(canvas, data)
 	canvas.create_text(data.width/2, 20, font="Arial 20",
 					   text="click anywhere to start game")
 	if data.startGame and mixer.music.get_busy():
-		if len(data.circles) > 0:
-			timeSinceStart = time.time() - data.songTimer
-			circle = data.circles[0]
-			print("timeSinceStart:", timeSinceStart)
-			print("circle.time:", circle.time[0])
-			if 0 <= (timeSinceStart-circle.time[0]) <= 0.1:
-				circle.draw(canvas, data)
-				data.circles.pop(0)
+		data.grid = [ [False] * 5 for row in range(5) ]
+		for circle in data.circles:
+			circle.draw(canvas, data)
+
+		while len(data.levels) > 0:
+			nextLevel = data.levels[0]	
+				# nextLevel[0]: text; nextLevel[1]: circle
+			canvas.create_text(nextLevel[1].cx, nextLevel[1].cy-20,
+							   text = nextLevel[0], font = "Arial 20")
+			data.levels.pop(0)
 
 
 
@@ -180,7 +252,9 @@ def playGameRedrawAll(canvas, data):
 
 
 
-# run function from 15-112 course note
+
+# run function taken from 15-112 course note "mode demo"
+# but i modified the keypress and keyrelease functions
 # http://www.kosbie.net/cmu/fall-16/15-112/notes/notes-animations-examples.html
 
 def run(width=300, height=300):
@@ -216,8 +290,6 @@ def run(width=300, height=300):
 	data.timerDelay = 100 # milliseconds
 	init(data)
 
-    # create the root and the canvas
-    # root = Tk() in buttons.py
 	root = Tk()
 	root.title("Just Beat It!")
 	mixer.init()
