@@ -1,11 +1,11 @@
 # construct and display the whole window
 
 import random
+import time
 from tkinter import *
 from pygame import mixer
 from tkinter import filedialog
 from tkinter import *
-from time import time
 
 import sys
 sys.path.append("../")
@@ -96,7 +96,7 @@ def selectSongRedrawAll(canvas, data):
 						text="Select a song you like!", font="Arial 26 bold")
 	# might turn it into a button
 	canvas.create_text(data.width/2, data.height/2+20,
-                       text="Press 's' to select!", font="Arial 20")
+                       text="Press 's' to select", font="Arial 20")
 
 
 ####################################
@@ -111,19 +111,21 @@ def tapBeatsKeyPressed(event, data):
 		if event.keysym == "m":
 			mixer.music.load(fileName)
 			mixer.music.play()
-			data.songStart = time()
+			data.songStart = time.time()
 		elif event.keysym == "s" and data.beats != []:
 			data.mode = "playGame"
 	else:
 		if event.keysym == "space" and not data.isPressed:
 			data.isPressed = True
-			data.press = time()
+			data.press = time.time()
 
 def tapBeatsKeyRelease(event, data):
 	if data.isPressed and mixer.music.get_busy():
-		now = time()
-		data.beats.append((data.press-data.songStart, now-data.songStart))
-		print((data.press-data.songStart, now-data.songStart))
+		now = time.time()
+		timestamp = (data.press-data.songStart, now-data.songStart)
+		data.beats.append(timestamp)
+		print(timestamp)
+		data.circles.append(Circle(timestamp))
 	data.isPressed = False
 
 def tapBeatsTimerFired(data):
@@ -133,8 +135,8 @@ def tapBeatsRedrawAll(canvas, data):
 	canvas.create_text(data.width/2, data.height/2-20,
 						text="Tap your beats!", font="Arial 26 bold")
 	# might turn it into a button
-	canvas.create_text(data.width/2, data.height/2+40,
-                       text="Press 'm' to start music.\nPress 'space' to create your beats!\nPress 's' to start the game!", font="Arial 20")
+	canvas.create_text(data.width/2, data.height/2+50,
+                       text="Press 'm' to start music\nPress 'space' to create your beats\nPress 's' to start the game", font="Arial 20")
 
 
 ####################################
@@ -145,8 +147,9 @@ def playGameMousePressed(event, data):
 	if not data.startGame:
 		if 0 < event.x < data.width and 0 < event.y < data.height:
 			data.startGame = True
-			data.songTimer = time()	# sec; when the music (game) starts
-
+			data.songTimer = time.time()	# sec; when the music (game) starts
+			mixer.music.load(fileName)
+			mixer.music.play()
 
 def playGameKeyPressed(event, data):
 	pass
@@ -155,22 +158,21 @@ def playGameKeyRelease(event, data):
 	pass
 
 def playGameTimerFired(data):
-	if data.startGame:
-		while len(data.beats) > 0:
-			timeSinceStart = roundHalfUp((time() - data.songTimer)*1000)
-			nextBeat = data.beats[0]
-			if timeSinceStart == roundHalfUp((nextBeat[0])*1000):
-				print("timeSinceStart:", timeSinceStart)
-				print("nextBeat[0]:", roundHalfUp(nextBeat[0]*1000))
-				data.circles.append(Circle(nextBeat))
-				data.beats.pop(0)
+	pass
 
 def playGameRedrawAll(canvas, data):
+	drawGrid(canvas, data)
 	canvas.create_text(data.width/2, 20, font="Arial 20",
 					   text="click anywhere to start game")
-	if data.startGame:
-		for circle in data.circles:
-			circle.draw(canvas, data)
+	if data.startGame and mixer.music.get_busy():
+		if len(data.circles) > 0:
+			timeSinceStart = time.time() - data.songTimer
+			circle = data.circles[0]
+			print("timeSinceStart:", timeSinceStart)
+			print("circle.time:", circle.time[0])
+			if 0 <= (timeSinceStart-circle.time[0]) <= 0.1:
+				circle.draw(canvas, data)
+				data.circles.pop(0)
 
 
 
@@ -211,7 +213,7 @@ def run(width=300, height=300):
 	data = Struct()
 	data.width = width
 	data.height = height
-	data.timerDelay = 1000 # milliseconds
+	data.timerDelay = 100 # milliseconds
 	init(data)
 
     # create the root and the canvas
@@ -229,10 +231,6 @@ def run(width=300, height=300):
 							keyPressedWrapper(event, canvas, data))
 	root.bind('<KeyRelease>', lambda event: 
 							keyReleaseWrapper(event, canvas, data))
-
-	root.rowconfigure(5)
-	root.columnconfigure(5)
-
 	timerFiredWrapper(canvas, data)
     # and launch the app
 	root.mainloop()  # blocks until window is closed
