@@ -2,16 +2,6 @@
 
 import random
 
-"""
-def drawGrid(canvas, data):
-	for row in range(5):
-		for col in range(5):
-			canvas.create_rectangle(40+col*data.cellW, 60+row*data.cellH,
-									40+(col+1)*data.cellW, 60+(row+1)*data.cellH,
-									width = 2)
-"""
-
-
 
 def distance(x0, y0, x1, y1):
 	return ((x0-x1)**2 + (y0-y1)**2) ** 0.5
@@ -24,7 +14,7 @@ def getCoor(data, row, col):
 
 class Circle(object):
 	def __init__(self, timestamp, timer, color="blue"):
-		self.r = 25
+		self.r = 28
 		self.timestamp = timestamp	# (start, end)
 		self.timer = timer		# for how long the circle has stayed (starts from 0)
 		self.color = color
@@ -36,6 +26,8 @@ class Circle(object):
 		# for the attached circle
 		self.othercx = 0
 		self.othercy = 0
+
+		self.isTouched = False
 
 
 	def isLongCir(self):
@@ -75,4 +67,14 @@ class Circle(object):
 		return distance(self.othercx, self.othercy, x, y) <= self.r
 
 	def __repr__(self):
-		return "***%s %s" % (str(self.timestamp[0]), str(self.timestamp[1]))
+		return "*!*%s %s" % (str(self.timestamp[0]), str(self.timestamp[1]))
+
+
+"""
+def drawGrid(canvas, data):
+	for row in range(5):
+		for col in range(5):
+			canvas.create_rectangle(40+col*data.cellW, 60+row*data.cellH,
+									40+(col+1)*data.cellW, 60+(row+1)*data.cellH,
+									width = 2)
+"""
