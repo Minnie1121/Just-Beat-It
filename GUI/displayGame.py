@@ -23,8 +23,10 @@ def init(data):
 	data.beats = []		# tuple (press, release)
 	data.press = 0		# at what time the key was pressed (time())
 	data.songStart = 0	# when did the song start to play
+	data.wasBusy = False
+	data.songLength = 0
+
 	data.isPressed = False
-	data.isClicked = False
 	data.songTimer = 0
 	data.startGame = False
 
@@ -42,6 +44,11 @@ def init(data):
 	data.levels = []	# Perfect, Good, OK, Miss
 
 	data.score = 0
+	data.miss = 0
+	data.perfect = 0
+	data.good = 0
+	data.ok = 0
+
 
 
 ####################################
@@ -50,36 +57,42 @@ def init(data):
 
 def mousePressed(event, data):
 	if (data.mode == "selectSong"): selectSongMousePressed(event, data)
+	elif (data.mode == "help"): helpMousePressed(event, data)
 	elif (data.mode == "tapBeats"): tapBeatsMousePressed(event, data)
 	elif (data.mode == "playGame"): playGameMousePressed(event, data)
 	elif (data.mode == "gameOver"): gameOverMousePressed(event, data)
 
 def mouseRelease(event, data):
 	if (data.mode == "selectSong"): selectSongMouseRelease(event, data)
+	elif (data.mode == "help"): helpMouseRelease(event, data)
 	elif (data.mode == "tapBeats"): tapBeatsMouseRelease(event, data)
 	elif (data.mode == "playGame"): playGameMouseRelease(event, data)
 	elif (data.mode == "gameOver"): gameOverMouseRelease(event, data)
 
 def keyPressed(event, data):
 	if (data.mode == "selectSong"): selectSongKeyPressed(event, data)
+	elif (data.mode == "help"): helpKeyPressed(event, data)
 	elif (data.mode == "tapBeats"): tapBeatsKeyPressed(event, data)
 	elif (data.mode == "playGame"): playGameKeyPressed(event, data)
 	elif (data.mode == "gameOver"): gameOverKeyPressed(event, data)
 
 def keyRelease(event, data):
 	if (data.mode == "selectSong"): selectSongKeyRelease(event, data)
+	elif (data.mode == "help"): helpKeyRelease(event, data)
 	elif (data.mode == "tapBeats"): tapBeatsKeyRelease(event, data)
 	elif (data.mode == "playGame"): playGameKeyRelease(event, data)
 	elif (data.mode == "gameOver"): gameOverKeyRelease(event, data)
 
 def timerFired(data):
 	if (data.mode == "selectSongTimerFired"): selectSongTimerFired(data)
+	elif (data.mode == "help"): helpTimerFired(data)
 	elif (data.mode == "tapBeats"): tapBeatsTimerFired(data)
 	elif (data.mode == "playGame"): playGameTimerFired(data)
 	elif (data.mode == "gameOver"): gameOverTimerFired(data)
 
 def redrawAll(canvas, data):
 	if (data.mode == "selectSong"): selectSongRedrawAll(canvas, data)
+	elif (data.mode == "help"): helpRedrawAll(canvas, data)
 	elif (data.mode == "tapBeats"): tapBeatsRedrawAll(canvas, data)
 	elif (data.mode == "playGame"): playGameRedrawAll(canvas, data)
 	elif (data.mode == "gameOver"): gameOverRedrawAll(canvas, data)
@@ -104,9 +117,12 @@ def selectSongMouseRelease(event, data):
 	pass
 
 def selectSongKeyPressed(event, data):
-	if (event.keysym == 's'):
+	if event.keysym == 's':
 		browseFile()
-		data.mode = "tapBeats"
+		if fileName != "":
+			data.mode = "tapBeats"
+	elif event.keysym == 'h':
+		data.mode = "help"
 
 def selectSongKeyRelease(event, data):
 	pass
@@ -115,11 +131,59 @@ def selectSongTimerFired(data):
 	pass
 
 def selectSongRedrawAll(canvas, data):
-	canvas.create_text(data.width/2, data.height/2-20,
-						text="Select a song you like!", font="Arial 26 bold")
-	# might turn it into a button
 	canvas.create_text(data.width/2, data.height/2+20,
-                       text="Press 's' to select", font="Arial 20")
+						text="Select a song you like!", 
+						font="Arial 26 bold", fill="indian red")
+	canvas.create_text(data.width/2, data.height/2+80,
+                       text="Press 's' to select\nPress 'h' to know how to play", font="Arial 20")
+	data.gameImage = PhotoImage(file = "game.gif")
+	canvas.create_image(data.width/2, 180, image = data.gameImage)
+
+
+
+####################################
+# help mode
+####################################
+
+def helpMousePressed(event, data): 
+	pass
+
+def helpMouseRelease(event, data):
+	pass
+
+def helpKeyPressed(event, data):
+	if (event.keysym == 's'):
+		data.mode = "selectSong"
+
+def helpKeyRelease(event, data):
+	pass
+
+def helpTimerFired(data):
+	pass
+
+def helpRedrawAll(canvas, data):
+	canvas.create_text(data.width/2, 60, text = "press 's' to go back",
+					   font = "Arial 26")
+	intro = """\
+    	- choose a song you like
+    	- tap the "space" to the beats
+    	- single blue circle: click on it
+    	- blue and red circles with a line: 
+    		click on blue circle and drag to red one
+    	- "Miss":
+    		click too slow
+    		click at wrong places
+    		drag your mouse to a wrong place
+    	- score:
+    		"Perfect": 10
+    		"Good": 5
+    		"OK": 3
+    		"Miss": 0
+
+    	ps: using a mouse would be better ;)"""
+
+	canvas.create_text(data.width/2-30, data.height/2, text = intro, 
+					   font = "Arial 16")
 
 
 
@@ -145,6 +209,7 @@ def tapBeatsKeyPressed(event, data):
 		if event.keysym == "space" and not data.isPressed:
 			data.isPressed = True
 			data.press = time.time()
+			data.wasBusy = True
 
 def tapBeatsKeyRelease(event, data):
 	if data.isPressed and mixer.music.get_busy():
@@ -155,11 +220,13 @@ def tapBeatsKeyRelease(event, data):
 	data.isPressed = False
 
 def tapBeatsTimerFired(data):
-	pass
+	if mixer.music.get_busy() and data.wasBusy:
+		data.songLength = time.time() - data.songStart
 
 def tapBeatsRedrawAll(canvas, data):
-	canvas.create_text(data.width/2, data.height/2-20,
-						text="Tap your beats!", font="Arial 26 bold")
+	canvas.create_text(data.width/2, data.height/2-30,
+					   text="Tap your beats!", font="Arial 26 bold",
+					   fill="indian red")
 	# might turn it into a button
 	canvas.create_text(data.width/2, data.height/2+50,
                        text="Press 'm' to start music\nPress 'space' to create your beats\nPress 's' to start the game", font="Arial 20")
@@ -174,38 +241,48 @@ def almostEqual(x, y):
 	return 0 <= abs(x-y) <= 0.1		# 0.1 sec
 
 def clickLevel(data, clickTime, circle):
+	# data.isClicked == True for this function
 	# releaseTime will be the clickTime for longCir
 	diff = clickTime - circle.timestamp[0]
 	length = circle.timestamp[1] - circle.timestamp[0]
 	if circle.isLongCir():
 		if 0 <= diff <= 0.7:
 			data.score += 10
+			data.perfect += 1
 			return "Perfect"
 		elif diff <= 1:
 			data.score += 5
+			data.good += 1
 			return "Good"
 		elif diff <= max(length, 3):
 			data.score += 3
+			data.ok += 1
 			return "OK"
 		else:
+			data.miss += 1
 			return "Miss"
 	else:
 		if 0 <= diff <= 0.7:
 			data.score += 10
+			data.perfect += 1
 			return "Perfect"
 		elif diff <= 1:
+			data.good += 1
 			data.score += 5
 			return "Good"
 		elif diff <= max(length, 2):
+			data.ok += 1
 			data.score += 3
 			return "OK"
 		else:
+			data.miss += 1
 			return "Miss"
 
 
 def playGameMousePressed(event, data):
 	# deal with normal circles in mouse press
 	# only change the state of data.isClicked for long circles here
+	data.isClicked = True
 	if not data.startGame:
 		if 0 < event.x < data.width and 0 < event.y < data.height:
 			data.startGame = True
@@ -216,10 +293,21 @@ def playGameMousePressed(event, data):
 		toRemove = []
 		for circle in data.circles:
 			if circle.clickedIn(event.x, event.y):
-				data.isClicked = True
+				circle.isTouched = True  # for later check on the long circle
 				if not circle.isLongCir():
 					clickTime = time.time() - data.songTimer
 					level = clickLevel(data, clickTime, circle)
+					data.levels.append((level, circle))
+					toRemove.append(circle)
+			else:	
+				miss = True
+				for circle in toRemove:
+					if circle.clickedIn(event.x, event.y):
+						miss = False	# if click outside the circle 
+										# but within another one
+				if miss:
+					level = "Miss"
+					data.miss += 1
 					data.levels.append((level, circle))
 					toRemove.append(circle)
 		remaining = []
@@ -235,11 +323,23 @@ def playGameMouseRelease(event, data):
 		toRemove = []
 		for circle in data.circles:
 			if circle.isLongCir():
-				if circle.releasedIn(event.x, event.y):
-					releaseTime = time.time() - data.songTimer
-					level = clickLevel(data, releaseTime, circle)
-					data.levels.append((level, circle))
-					toRemove.append(circle)
+				if circle.isTouched:
+					if circle.releasedIn(event.x, event.y):
+						releaseTime = time.time() - data.songTimer
+						level = clickLevel(data, releaseTime, circle)
+						data.levels.append((level, circle))
+						toRemove.append(circle)
+					else:
+						level = "Miss"
+						data.miss += 1
+						data.levels.append((level, circle))
+						toRemove.append(circle)
+				else:
+					if time.time()-data.songTimer > circle.timestamp[1]:
+						level = "Miss"
+						data.miss += 1
+						data.levels.append((level, circle))
+						toRemove.append(circle)
 		remaining = []
 		for circle in data.circles:
 			if circle not in toRemove:
@@ -267,8 +367,10 @@ def playGameTimerFired(data):
 				if (almostEqual(data.timer/10, beat[0]) 
 						and beat != data.lastBeat):
 					data.circles.append(Circle(beat, 0))
-					data.lastBeat = beat 	# avoid the extra timerFired calls
+					# avoid the extra timerFired calls
+					data.lastBeat = beat
 					break
+
 			toRemove = []
 			for circle in data.circles:
 				length = circle.timestamp[1] - circle.timestamp[0]
@@ -284,27 +386,33 @@ def playGameTimerFired(data):
 			for circle in data.circles:
 				if circle not in toRemove:
 					remaining.append(circle)
+				elif circle in toRemove and not data.isClicked:
+					circle.level = "Miss"
+					data.miss += 1
 			data.circles = remaining
 
 
 def playGameRedrawAll(canvas, data):
-	canvas.create_text(data.width/2, 20, font="Arial 20",
-					   text="click anywhere to start game\tScore: %d" 
-					   									% data.score)
+	canvas.create_text(data.width/2-25, 20, font="Arial 17",
+					   text="click anywhere to start game\tScore: %d\t Miss: %d" % (data.score, data.miss))
 	if mixer.music.get_busy():
 		data.grid = [ [False] * 5 for row in range(5) ]
 		for circle in data.circles:
-			circle.draw(canvas, data)
-
+			if data.songLength-circle.timestamp[1] > 2:
+				# not drawing the very last beats
+				circle.draw(canvas, data)
 		while len(data.levels) > 0:
-			nextLevel = data.levels[0]	
+			print(data.levels)
+			nextLevel = data.levels[0]
 				# nextLevel: tuple of (text, Circle)
 			if nextLevel[1].isLongCir():
 				x, y = nextLevel[1].othercx, nextLevel[1].othercy-20
 			else:
 				x, y = nextLevel[1].cx, nextLevel[1].cy-20
-			canvas.create_text(x, y, text = nextLevel[0], font = "Arial 20")
+			canvas.create_text(x, y, text = nextLevel[0], 
+							   font = "Arial 20", fill = "indian red")
 			data.levels.pop(0)
+
 
 
 
@@ -328,9 +436,18 @@ def gameOverTimerFired(data):
 	pass
 
 def gameOverRedrawAll(canvas, data):
-	canvas.create_text(data.width/2, data.height/2,
-					   text="Your Score:\n%d" % data.score,
-					   font="Arial 26 bold")
+	canvas.create_text(data.width/2, data.height/2-10,
+					   text = "Your Score: %d" % data.score,
+					   font = "Arial 26 bold", fill = "indian red")
+	canvas.create_text(data.width/2, data.height/2+100,
+					   text="Miss: %d\nPerfect: %d\nGood: %d\nOK: %d" % 
+					   		(data.miss, data.perfect, data.good, data.ok),
+					   font="Arial 24")
+	
+	data.goodImage = PhotoImage(file = "good.gif")
+	canvas.create_image(data.width/2, 180, image = data.goodImage)
+
+
 
 
 
