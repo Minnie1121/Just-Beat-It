@@ -16,7 +16,7 @@ class Circle(object):
 	def __init__(self, timestamp, timer, color="blue"):
 		self.r = 28
 		self.timestamp = timestamp	# (start, end)
-		self.timer = timer		# for how long the circle has stayed (starts from 0)
+		# self.timer = timer		# for how long the circle has stayed (starts from 0)
 		self.color = color
 		self.row = random.randint(0, 4)
 		self.col = random.randint(0, 4)
@@ -26,8 +26,7 @@ class Circle(object):
 		# for the attached circle
 		self.othercx = 0
 		self.othercy = 0
-
-		self.isTouched = False
+		self.isClickedInBlue = False
 
 
 	def isLongCir(self):
@@ -62,7 +61,7 @@ class Circle(object):
 	def clickedIn(self, x, y):
 		return distance(self.cx, self.cy, x, y) <= self.r
 
-	# if the mouse is released within the circle "attached" to longCir
+	# check if the mouse is released within red circle
 	def releasedIn(self, x, y):
 		return distance(self.othercx, self.othercy, x, y) <= self.r
 
