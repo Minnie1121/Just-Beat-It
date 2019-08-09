@@ -48,6 +48,7 @@ def init(data):
 	data.ok = 0
 	data.best = 0
 	data.combo = 0
+	data.bestCombo = 0
 
 
 # to keep the data.best
@@ -82,6 +83,7 @@ def restart(data):
 	data.good = 0
 	data.ok = 0
 	data.combo = 0
+	data.bestCombo = 0
 
 
 ####################################
@@ -272,6 +274,10 @@ def tapBeatsRedrawAll(canvas, data):
 # playGame mode
 ####################################
 
+def updateCombo(data):
+	if data.combo > data.bestCombo:
+		data.bestCombo = data.combo
+
 def almostEqual(x, y):
 	return 0 <= abs(x-y) <= 0.1		# 0.1 sec
 
@@ -282,32 +288,38 @@ def clickLevel(data, diff, circle):
 			data.score += 10
 			data.perfect += 1
 			data.combo += 1
+			updateCombo(data)
 			return "Perfect"
 		elif diff <= 1:
 			data.score += 5
 			data.good += 1
 			data.combo += 1
+			updateCombo(data)
 			return "Good"
 		elif diff <= max(length, 3):
 			data.score += 3
 			data.ok += 1
 			data.combo += 1
+			updateCombo(data)
 			return "OK"
 	else:
 		if 0 <= diff <= 0.8:
 			data.score += 10
 			data.perfect += 1
 			data.combo += 1
+			updateCombo(data)
 			return "Perfect"
 		elif diff <= 1:
 			data.good += 1
 			data.score += 5
 			data.combo += 1
+			updateCombo(data)
 			return "Good"
 		elif diff <= max(length, 2):
 			data.ok += 1
 			data.score += 3
 			data.combo += 1
+			updateCombo(data)
 			return "OK"
 
 # if not within the blue circle & not within another circle: miss
@@ -477,7 +489,7 @@ def gameOverRedrawAll(canvas, data):
 					   text = "Your Score: %d" % data.score,
 					   font = "Arial 26 bold", fill = "indian red")
 	canvas.create_text(data.width/2, data.height/2+85,
-					   text="Best Score: %d\nCombo: %d\nMiss: %d\nPerfect: %d\nGood: %d\nOK: %d" % (data.best, data.combo, data.miss, data.perfect, data.good, data.ok),
+					   text="Best Score: %d\nBest Combo: %d\nMiss: %d\nPerfect: %d\nGood: %d\nOK: %d" % (data.best, data.bestCombo, data.miss, data.perfect, data.good, data.ok),
 					   font="Arial 22")
 	canvas.create_text(data.width/2, data.height/2+210,
 					   text="Press 'r' to start again!",
