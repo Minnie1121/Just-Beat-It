@@ -19,7 +19,7 @@ from circleClass import *
 def init(data):
 	data.mode = "selectSong"
 	data.beats = []		# tuple (press, release)
-	data.press = 0		# at what time the key was pressed (time())
+	data.press = 0		# at what time the key was pressed
 	data.songStart = 0	# when did the song start to play
 	data.wasBusy = False
 	data.songLength = 0
@@ -47,9 +47,10 @@ def init(data):
 	data.good = 0
 	data.ok = 0
 	data.best = 0
+	data.combo = 0
 
 
-# keep the data.best
+# to keep the data.best
 def restart(data):
 	data.mode = "selectSong"
 	data.beats = []		# tuple (press, release)
@@ -60,6 +61,7 @@ def restart(data):
 
 	data.songTimer = 0
 	data.startGame = False
+	data.isPressed = False
 
 	data.rows = 5
 	data.cols = 5
@@ -79,6 +81,7 @@ def restart(data):
 	data.perfect = 0
 	data.good = 0
 	data.ok = 0
+	data.combo = 0
 
 
 ####################################
@@ -210,7 +213,7 @@ def helpRedrawAll(canvas, data):
     		"OK": 3
     		"Miss": 0
 
-    	ps: using a mouse would be better ;)"""
+    	ps: using a mouse might be better ;)"""
 
 	canvas.create_text(data.width/2-30, data.height/2, text = intro, 
 					   font = "Arial 16")
@@ -278,27 +281,33 @@ def clickLevel(data, diff, circle):
 		if 0 <= diff <= 0.8:
 			data.score += 10
 			data.perfect += 1
+			data.combo += 1
 			return "Perfect"
 		elif diff <= 1:
 			data.score += 5
 			data.good += 1
+			data.combo += 1
 			return "Good"
 		elif diff <= max(length, 3):
 			data.score += 3
 			data.ok += 1
+			data.combo += 1
 			return "OK"
 	else:
 		if 0 <= diff <= 0.8:
 			data.score += 10
 			data.perfect += 1
+			data.combo += 1
 			return "Perfect"
 		elif diff <= 1:
 			data.good += 1
 			data.score += 5
+			data.combo += 1
 			return "Good"
 		elif diff <= max(length, 2):
 			data.ok += 1
 			data.score += 3
+			data.combo += 1
 			return "OK"
 
 # if not within the blue circle & not within another circle: miss
@@ -311,9 +320,11 @@ def checkMiss(data, event, circle, toRemove):
 			break
 	if miss:
 		level = "Miss"
+		data.combo = 0
 		data.miss += 1
 		data.levels.append((level, circle))
 		toRemove.append(circle)
+
 
 
 def playGameMousePressed(event, data):
@@ -361,6 +372,7 @@ def playGameMouseRelease(event, data):
 					else:
 						data.levels.append(("Miss", circle))
 						data.miss += 1
+						data.combo = 0
 						toRemove.append(circle)
 		remaining = []
 		for circle in data.circles:
@@ -406,13 +418,17 @@ def playGameTimerFired(data):
 					remaining.append(circle)
 				else:
 					data.miss += 1
+					data.combo = 0
 			data.circles = remaining
 
 
 def playGameRedrawAll(canvas, data):
-	canvas.create_text(data.width/2-25, 20, font="Arial 17",
-					   text="click anywhere to start game\tScore: %d Miss: %d" % (data.score, data.miss),
-					   fill="indian red")
+	tip = "click anywhere to start game"
+	displayScore = "Score: %d\t Miss: %d\tCombo: %d"
+	canvas.create_text(data.width/2, 25, font="Arial 17", text=tip)
+	canvas.create_text(data.width/2, 60, font="Arial 17 bold", 
+					   fill="indian red",
+					   text=displayScore % (data.score, data.miss, data.combo))
 	if mixer.music.get_busy():
 		data.grid = [ [False] * 5 for row in range(5) ]
 		for circle in data.circles:
@@ -457,18 +473,18 @@ def gameOverTimerFired(data):
 		data.best = data.score
 
 def gameOverRedrawAll(canvas, data):
-	canvas.create_text(data.width/2, data.height/2-20,
+	canvas.create_text(data.width/2, data.height/2-40,
 					   text = "Your Score: %d" % data.score,
 					   font = "Arial 26 bold", fill = "indian red")
-	canvas.create_text(data.width/2, data.height/2+90,
-					   text="Best Score: %d\nMiss: %d\nPerfect: %d\nGood: %d\nOK: %d" % (data.best, data.miss, data.perfect, data.good, data.ok),
-					   font="Arial 24")
-	canvas.create_text(data.width/2, data.height/2+205,
+	canvas.create_text(data.width/2, data.height/2+85,
+					   text="Best Score: %d\nCombo: %d\nMiss: %d\nPerfect: %d\nGood: %d\nOK: %d" % (data.best, data.combo, data.miss, data.perfect, data.good, data.ok),
+					   font="Arial 22")
+	canvas.create_text(data.width/2, data.height/2+210,
 					   text="Press 'r' to start again!",
 					   font="Arial 22", fill="indian red")
 	
 	data.goodImage = PhotoImage(file = "GUI/good.gif")
-	canvas.create_image(data.width/2, 170, image = data.goodImage)
+	canvas.create_image(data.width/2, 160, image = data.goodImage)
 
 
 
