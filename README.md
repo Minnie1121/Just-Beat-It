@@ -5,4 +5,4 @@
 ## How to run it
    
    You need to "pip install pygame" first.
-   Open the GUI file and execute displayGame.py. Then have fun playing the game!
+   Execute displayGame.py then have fun playing the game!
